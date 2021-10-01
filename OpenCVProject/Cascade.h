@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#pragma once
+
 using namespace std;
 using namespace cv;
 
@@ -16,9 +18,9 @@ public:
     string path;
     Scalar color = Scalar(255, 255, 255);
 
-    double scaleFactor = 1.1;
-    int minNeighbors = 4;
-    Size minSize = Size(10,10);
+    double scaleFactor = 0;
+    int minNeighbors = 0;
+    Size minSize = Size(0,0);
 
 public:
     Cascade(string cascadePath) {

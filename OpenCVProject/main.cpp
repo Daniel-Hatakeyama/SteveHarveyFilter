@@ -1,3 +1,6 @@
+/* ------------------------------ Created By Daniel Hatakeyama ------------------------------ */
+/* ------------------------------ Steve Harvey Image Generator ------------------------------ */
+
 #include <iostream> 
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
@@ -6,166 +9,314 @@
 #include <vector>
 #include <time.h>
 #include "Image.h"
+namespace fs = std::filesystem; // Requires C++17
 
-namespace fs = std::filesystem; // Needs C++17
+/* ---------------------------------------- Headers ---------------------------------------- */
 
-// Headers :
-bool generateInputFileList(std::vector <std::string>& fileList, std::string inputPath);
-void generateProfileImages(const std::vector<std::string>& inFiles, std::vector<Image>& images, cv::Size profileSize);
+inline void generateInputFileList(std::vector <std::string>& inFiles, const std::vector <std::string>& outFiles, const std::string path);
+inline void generateOutputFileList(std::vector <std::string>& fileList, const std::string path, bool& isValid);
+void generateProfileImages(const std::vector<std::string>& inFiles, const bool& validOutput);
+inline void displayOutput(const std::vector<string>& outFiles);
 inline void keyContinue();
-inline void printFileList(const std::vector<std::string>& fileList);
+inline void printFileList(const std::vector<std::string>& fileList, std::string name = "");
 inline bool exists(const std::string& name);
 inline bool validateExtension(const std::string& path);
+void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outFiles, const std::string& inputPath, const std::string& outputPath, bool& validOutput);
+
+/* ---------------------------------------- SETTINGS ---------------------------------------- */
+
+// Profile Parameters :
+const Size profileSize = Size(720, 720); // TODO This dont do shit rn xd
+
+// FileIO : File/Folder Input : Folder Output
+const string inputPath = ".\\Resources\\Input\\";
+const string outputPath = ".\\Resources\\Output\\";
+
+// Ouput Settings
+const bool storeImage = true;		   // If store image in outputDestination
+const bool overrideDuplicates = true; // Regenerate if item already exists in output
+const bool showOutput = true;	       // Show all contents of output folder 
+
+// Display Settings
+const bool displayLog = false;		   // Display each image as it is generated
+const bool showDebugImage = false;	   // Debug draw all rectangle cascades
+const bool showCascadeImage = true;    // Draw final cascades
+const bool showProfileImage = true;    // Draw final image
+const bool skipFails = false;		   // Draw negative matches
+
+/* -------------------------------------- TODO LIST ------------------------------------- */
+/* 
+* generateProfileImage() [Crop PFP around face]
+* ~Image() , ~Cascade() [Avoid Memory Leaks]
+* Increase Speed further: Optimise construction
+* Determine once and for all if you should be dynamically allocating to improve performance.
+* Add Static Size Variable
+*/
+/* ---------------------------------------- Main ---------------------------------------- */
 
 int main() {
 	using namespace std;
 	using namespace cv;
-
-	// Log Level : Errors
+	
+	// Log Level : Errors :
 	utils::logging::setLogLevel(utils::logging::LogLevel::LOG_LEVEL_ERROR);
 
-	// Settings / Input :
-	Size profileSize = Size(720, 720);
-	string inputPath = "Resources\\Images\\";
-	string outputPath = ".\\Resources\\Output\\calliope_face.jpg";
-
-	// Variables
+	// Persistent Variables :
 	vector<string> inFiles;
 	vector<string> outFiles;
-	vector<Image> images;
+	bool validOutput;
 
-	// Generate Heve Code :
-	// 
-	// Get Input :
-	generateInputFileList(inFiles, inputPath);
-	printFileList(inFiles);
+	// Input / Output Setup :
+	ioHandler(inFiles, outFiles, inputPath, outputPath, validOutput);
 
-	// Generate Image Data :
-	cout << endl << "Generating : " << endl << endl;
-	generateProfileImages(inFiles, images, profileSize);
+	// GENERATE 
+	generateProfileImages(inFiles, validOutput);
 	
-	// Show Images :
-	for (Image image : images) {
-		imshow(image.path, image.debugImage);
-		keyContinue();
-		imshow(image.name, image.faceImage);
-		keyContinue();
-
-		string writePath = outputPath + image.name;
-		imwrite(writePath, image.faceImage);
-	}
-	
-	/*
 	// Display Output :
-	generateInputFileList(outFiles, outputPath);
-	for (string path : outFiles) {
-		images.push_back(Image(path));
-	}
-	for (Image image : images) {
-		imshow(image.name, image.original);
-		keyContinue();
-	}*/
-
-	keyContinue();
-	return 0;
+	displayOutput(outFiles);
+	
 }
 
-void generateProfileImages(const std::vector<std::string>& inFiles, std::vector<Image>& images, cv::Size profileSize) {
+/* ---------------------------------------- Functions ---------------------------------------- */
+
+/// <summary>
+/// Super-impose Steve Harvey on all input : Save valid generated image profiles into output folder : Uses haarcascades with OpenCV library 
+/// </summary>
+/// <param name="inFiles"> : Validated Input File Paths </param>
+/// <param name="validOutput"> : If output directory exists (might change how this works eventualy) </param>
+void generateProfileImages(const std::vector<std::string>& inFiles, const bool& validOutput) {
 	using namespace std;
 	using namespace cv;
 
+	cout << endl << "[Generating] : " << endl << endl;
+
 	int count = 0;
 	for (string path : inFiles) {
-		
-		cout << "Image " << ++count << "/" << inFiles.size() << " : " << images.size() << " Positive Match" << endl;
-		Image image = Image(path, profileSize);
-		
+
+		// PREPARE :
+		cout << "Constructing Image " << ++count << "/" << inFiles.size() << " : " << inFiles.size() << " Positive Match" << endl;
+		Image image = Image(path);
+
+		// GENERATE :
 		image.generateAll();
 		image.drawDebugCascades();
-		// image.drawDebugAllCascades();
+		if (showDebugImage) image.drawDebugAllCascades();
 
+		// EVALUATE :
 		if (image.checkForFaceImage) {
-			images.push_back(image);
+			// LOG :
+			if (displayLog) { 
+				if (showDebugImage || showCascadeImage) {
+					imshow(image.name, image.debugImage); keyContinue();
+				}
+				if (showProfileImage) {
+					imshow(image.name, image.faceImage); keyContinue();
+				}
+			}
+			// SAVE :
+			if (storeImage && validOutput) {
+				string writePath = outputPath + image.name + image.ext;
+				imwrite(writePath, image.faceImage);
+				cout << "Saving " << image.name << image.ext << " in " << outputPath.substr(2) << endl;
+			} else if (storeImage) {
+				cout << "Invalid Output Directory [Could not save image]" << endl;
+			}
 			cout << "[Success]" << endl << endl;
-		}
-		else {
+		} else {
+			// LOG :
+			if (displayLog && !skipFails) { // Display Logging : (Failed Image)
+				if (showDebugImage || showCascadeImage) {
+					imshow(image.name, image.debugImage); keyContinue();
+				}
+				if (showProfileImage) {
+					imshow(image.name, image.normalized); keyContinue();
+				}
+			}
 			cout << "[Fail]" << endl << endl;
 		}
 	}
+	cout << "[Complete] : " << endl << endl;
 }
 
-bool generateInputFileList(std::vector <std::string>& fileList, std::string inputPath) {
+// Container to generate, validate, parse input and output directory.
+void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outFiles, const std::string& inputPath, const std::string& outputPath, bool& validOutput) {
+
+	// Get output for duplicate check :
+	generateOutputFileList(outFiles, outputPath, validOutput);
+	generateInputFileList(inFiles, outFiles, inputPath);
+
+	printFileList(inFiles, "Input File List");
+	printFileList(outFiles, "Output File List");
+}
+
+// Parse valid file paths from directory OR file input
+inline void generateInputFileList(std::vector <std::string>& fileList, const std::vector <std::string>& outFiles, const std::string path) {
 	using namespace cv;
 	using namespace std;
 
 	// Validate Path :
-	bool isFile = inputPath.find(".") < inputPath.npos;
-	bool isDirectory = inputPath.find("\\") < inputPath.npos;
-	bool ifExists = exists(inputPath);
-
-	// Input is a file :
-	if (isFile && ifExists) {
-		fileList.push_back(inputPath);
-	}
-	// Input is a directory :
-	else if (isDirectory && ifExists) {
-		for (const auto& dirItem : fs::directory_iterator(inputPath)) {
+	bool isFile = path.rfind('.') < path.npos && path.rfind('.') != 0;
+	bool isDirectory = path.find('\\') < path.npos;
+	bool ifExists = exists(path);
+	if (isFile && ifExists && !isDirectory) { 
+		// Input is valid file :
+		fileList.push_back(path);
+	} else if (isDirectory && ifExists && !isFile) { 
+		// Input is valid directory :
+		for (const auto& dirItem : fs::directory_iterator(path)) {
 			string pathName = dirItem.path().string();
 			fileList.push_back(pathName);
 		}
-	}
-	// Input is invalid :
-	else {
+	} else { 
+		// Input Path is invalid :
 		cout << "Enter Valid Path" << endl;
-		return false;
+		return;
 	}
 
-	// Validate paths in file list :
+	// Get output file name list (w/o path and ext) to compare for checking duplicates
+	vector<string> outputNames;
+	for (string path : outFiles) {
+		string oName = path.substr(path.rfind('\\') + 1, path.rfind('.') - path.rfind('\\') - 1);
+		outputNames.push_back(oName);
+	}
+
+	if (!overrideDuplicates) {
+		cout << "----------------------------------------" << endl;
+		cout << "Validating Input Paths :" << endl;
+		cout << "----------------------------------------" << endl;
+	}
+
+	// Validate Files in Path :
 	for (auto path = fileList.begin(); path != fileList.end();) {
 		// Get file extension :
 		int extIndex = path->rfind(".");
 		if (extIndex != path->npos) {
 			// Make fExtension lowercase :
 			transform(path->begin() + extIndex, path->end(), path->begin() + extIndex, ::tolower);
-
 			if (validateExtension(*path)) {
-				path++;
-				continue;
+				// Input Path(i) is a valid image files
+				bool isDuplicate = false;
+				string iName = path->substr(path->rfind('\\') + 1, path->rfind('.') - path->rfind('\\') - 1);
+				if (!overrideDuplicates) {
+					for (string oName : outputNames) {
+						if (oName == iName) {
+							isDuplicate = true;
+							break;
+						}
+					}
+				}
+				// Test Duplicate
+				if (!overrideDuplicates && isDuplicate) {
+					// If duplicate and no override : Path is removed from valid list
+					cout << "[Override Duplicates == False]" << " Removed " << iName << endl;
+					path = fileList.erase(path);
+					continue;
+				} else {
+					// Path is Valid
+					path++;
+					continue;
+				}
 			}
 			else {
+				// Invalid Extension (Invalid Path is Removed)
 				path = fileList.erase(path);
 				continue;
 			}
 		}
 		else {
-			// Remove items without file extension :
+			// No Extension (Invalid Path is Removed)
 			path = fileList.erase(path);
 			continue;
 		}
 	}
+	
 	if (fileList.size() == 0) {
-		// No files found
-		return false;
+		// No files found (No Valid Input)
+		cout << "[Error] No Valid Input" << endl;
 	}
-	else {
-		return true;
+	cout << "----------------------------------------" << endl;
+}
+
+// Parse valid file paths from directory input
+inline void generateOutputFileList(std::vector <std::string>& fileList, const std::string path, bool& validOutput) {
+	using namespace cv;
+	using namespace std;
+
+	// Innocent until proven guilty :
+	validOutput = true;
+
+	// Validate Output Path :
+	bool isFile = path.find(".") < path.npos;
+	bool isDirectory = path.find("\\") < path.npos;
+	bool ifExists = exists(path);
+	if (isDirectory && ifExists) {
+		// Only directory is valid for output
+		for (const auto& dirItem : fs::directory_iterator(path)) {
+			string pathName = dirItem.path().string();
+			fileList.push_back(pathName);
+		}
+	} else {
+		cout << "Invalid Output Path" << endl;
+		validOutput = false;
+		return;
+	}
+
+	// Validate Files in Path :
+	for (auto path = fileList.begin(); path != fileList.end();) {
+		// Get file extension :
+		int extIndex = path->rfind(".");
+		if (extIndex != path->npos) {
+			// Make fExtension lowercase :
+			transform(path->begin() + extIndex, path->end(), path->begin() + extIndex, ::tolower);
+			if (validateExtension(*path)) {
+				path++;
+				continue;
+			} else {
+				// Remove items without file extension :
+				path = fileList.erase(path);
+				continue;
+			}
+		}
 	}
 }
 
+/* ------------------------------------- Helper Functions ------------------------------------- */
+
+// Display output folder
+inline void displayOutput(const std::vector<string>& outFiles) {
+	
+	if (!showOutput) return;
+	
+	cout << "Displaying Output Folder" << endl;
+	for (string path : outFiles) {
+		string name = path.substr(path.rfind('\\') + 1, path.rfind('.') - path.rfind('\\') - 1);
+		Mat outImage = imread(path);
+		imshow(name, outImage);
+		keyContinue();
+	}
+}
+
+// Wait for key press and clear windows on key event
 inline void keyContinue() {
 	cv::waitKey();
 	cv::destroyAllWindows();
 }
 
+// Check if file exists in directory
 inline bool exists(const std::string& name) {
-	// Check if File Exists in Directory : https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-14-17-c
+	// Source : https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-14-17-c
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
 }
 
-inline void printFileList(const std::vector<std::string>& fileList) {
+// Pretty-print file path list
+inline void printFileList(const std::vector<std::string>& fileList, std::string name) {
 	
-	std::cout << "File List : " << endl;
+	if (name.empty()) {
+		name = "File List";
+	}
+
+	std::cout << name << " : " << endl;
 	std::cout << "----------------------------------------" << endl;
 	for (string file : fileList) {
 		std::cout << file << endl;
@@ -173,6 +324,7 @@ inline void printFileList(const std::vector<std::string>& fileList) {
 	std::cout << "----------------------------------------" << endl;
 }
 
+// Check if path has valid image extension (.png, .jpg, .jpeg)
 inline bool validateExtension(const std::string& path) {
 	if (path.ends_with(".png")) {
 		return true;
@@ -187,3 +339,5 @@ inline bool validateExtension(const std::string& path) {
 		return false;
 	}
 }
+
+/* ---------------------------------------- Fuck you ---------------------------------------- */

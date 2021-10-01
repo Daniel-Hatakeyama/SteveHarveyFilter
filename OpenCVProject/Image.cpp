@@ -10,16 +10,14 @@
 using namespace std;
 using namespace cv;
 
-const string Image::frontalFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_frontalface_tree_adaboost.xml";
+const string Image::frontalFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_frontalface_tree_alt.xml";
 const string Image::eyeCascadePath = ".\\Resources\\HaarCascade\\haarcascade_eyes_update.xml";
 const string Image::animeFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_anime_face.xml";
 const string Image::animeEyeCascadePath = ".\\Resources\\HaarCascade\\haarcascade_anime_eyes.xml";
-const Size Image::defaultSize = Size(720, 720);
 
-Image::Image(string _path, Size _size) {
-	
+Image::Image(string _path) {
 	path = _path;
-	size = _size;
+	size = Size(720,720); // Default Size goes here for now i guess
 
 	loadImage(path);
 
@@ -42,15 +40,15 @@ void Image::generateAll() {
 	generateGrayscaleImage();
 	generateCascades();
 	generateFaceImage();
-	//generateProfileImage();
-
+	//generateProfileImage(); ?? TODO
 }
 
 // Reset Function with New Path
 void Image::loadImage(string _path) {
 	
 	path = _path;
-	name = path.substr(path.find_last_of("/\\") + 1);
+	name = path.substr(path.rfind('\\') + 1, path.rfind('.') - path.rfind('\\') - 1);
+	ext = path.substr(path.rfind('.'));
 
 	cout << "loadImage(" << path << ") : ";
 
@@ -81,14 +79,20 @@ void Image::loadImage(string _path) {
 
 }
 
-void Image::generateNormalizedImage(Size targetSize) {
+void Image::generateNormalizedImage() {
 
 	// Requires Original :
-
 	cout << "generateNormalizedImage() : ";
 	if (!checkForOriginal) {
-		cout << "-Failed-" << endl;
+		cout << "-Failed- [CheckForOriginal]" << endl;
 	}
+
+	// Requires Size Property
+	if (size == Size(0, 0)) {
+		cout << "-Failed- [Invalid Size]" << endl;
+	}
+
+	Size targetSize = size;
 
 	normalized = original.clone();
 	// If image width > image height
@@ -144,30 +148,30 @@ void Image::generateCascades() {
 
 	// Requires grayscale :
 
-	cout << "Cascading : ";
+	cout << "generateCascades() : Cascading : ";
 
 	if (!checkForGrayscale) {
-		cout << "-Failed-" << endl;
+		cout << "-Failed- [checkForGrayscale]" << endl;
+		return;
 	}
 
-	// Run face detection :
+	// Run Face Detection :
 	faceCascade.detectMultiScale(grayscale); cout << "-";
 	animeFaceCascade.detectMultiScale(grayscale); cout << "-";
-	// Run eye detection :
+	// Run Eye Detection :
 	eyeCascade.detectMultiScale(grayscale); cout << "-";
 	animeEyeCascade.detectMultiScale(grayscale); cout << "-";
 
 	cout << " : -Success-" << endl;
-
 	checkForCascades = true;
 }
 
 void Image::generateFaceImage() {
-
+	cout << "generateFaceImage() : ";
 	// Requires cascades
 
 	if (!checkForCascades) {
-		cout << "generateFaceImage() : -Failed-" << endl;
+		cout << "-Failed- [checkForCascades]" << endl;
 		return;
 	}
 
@@ -177,7 +181,7 @@ void Image::generateFaceImage() {
 		int numEyes = eyesInLargestFace(faceCascade.rects, eyeCascade.rects, largestFace);
 
 		if (numEyes == 2) {
-			cout << "Requirements [default face] have been met : -Success-" << endl;
+			cout << "Requirements [default face] have been met : -Success- ";
 			checkForFaceImage = true;
 			// Requirements have been met to draw features
 			Rect face = largestFace;
@@ -193,7 +197,7 @@ void Image::generateFaceImage() {
 		int numAnimeEyes = eyesInLargestFace(animeFaceCascade.rects, animeEyeCascade.rects, largestAnimeFace);
 
 		if (numAnimeEyes == 2) {
-			cout << "Requirements [anime face] have been met : -Success-" << endl;
+			cout << "Requirements [anime face] have been met : -Success- ";
 			checkForFaceImage = true;
 			// Requirements have been met to draw features
 			Rect face = largestAnimeFace;
@@ -204,6 +208,7 @@ void Image::generateFaceImage() {
 			drawFace(face, eyeL, eyeR);
 		}
 	}
+	cout << endl;
 }
 
 int Image::eyesInLargestFace(vector<Rect>& faceRects, vector<Rect>& eyeRects, Rect& largestFace) {
@@ -258,11 +263,9 @@ void Image::drawFace(Rect face, Rect eyeL, Rect eyeR) {
 	// Draw Left Eye :
 	int eyeLeftX = eyeL.x + eyeL.width / 2, eyeLeftY = eyeL.y + eyeL.height / 2, eyeLeftR = eyeL.width / 2;
 	
-
 	// Draw Right Eye :
 	int eyeRightX = eyeR.x + eyeR.width / 2, eyeRightY = eyeR.y + eyeR.height / 2, eyeRightR = eyeR.width / 2;
 	
-
 	// Configure Rand for Offset
 	srand(time(NULL));
 	float maxOffsetX = 3; // 1/maxOffset = %ofRadius offset
@@ -319,10 +322,11 @@ void Image::drawFace(Rect face, Rect eyeL, Rect eyeR) {
 	circle(faceImage, Point(eyeRightX + RightOffsetX, eyeRightY + RightOffsetY), pupilRightR, eyePupilColor, -1);
 	// Draw Eyebrows
 
-
 }
 
 void Image::drawDebugCascades() {
+
+	if (!checkForCascades) return;
 
 	drawRectList(debugImage, faceCascade.rects, faceCascade.color);
 	drawRectList(debugImage, eyeCascade.rects, eyeCascade.color);
@@ -399,3 +403,6 @@ vector<Rect> Image::runAnimeEyeCascade() {
 	return animeEyeCascade.rects;
 
 }
+
+// TODO
+// void setDefaultSize(Size _size) {}

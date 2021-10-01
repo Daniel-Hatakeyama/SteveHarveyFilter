@@ -10,6 +10,11 @@ using namespace std;
 using namespace cv;
 
 void Cascade::detectMultiScale(Mat grayscaleImage) {
+
+	if (!scaleFactor && !minNeighbors && (minSize == Size(0, 0))) {
+		cout << "Apply Settings to Cascade" << endl;
+	}
+
 	cascade.detectMultiScale(grayscaleImage, rects, scaleFactor, minNeighbors, 0, minSize);
 }
 

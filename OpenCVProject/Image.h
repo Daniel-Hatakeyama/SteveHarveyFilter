@@ -1,5 +1,11 @@
 #include <iostream>
+#include <cstdlib>
+#include <opencv2/opencv.hpp>
+#include <string>
+
 #include "Cascade.h"
+
+#pragma once
 
 using namespace std;
 using namespace cv;
@@ -11,17 +17,17 @@ private:
     static const string eyeCascadePath;
     static const string animeFaceCascadePath;
     static const string animeEyeCascadePath;
-    static const Size defaultSize;
 
 public:
+
+public:
+    string path, name, ext;
+    Size size;
+    Mat original, normalized, grayscale, faceImage, profileImage, debugImage;
     Cascade faceCascade = Cascade(frontalFaceCascadePath);
     Cascade eyeCascade = Cascade(eyeCascadePath);
     Cascade animeFaceCascade = Cascade(animeFaceCascadePath);
     Cascade animeEyeCascade = Cascade(animeEyeCascadePath);
-    Mat original, normalized, grayscale, faceImage, profileImage, debugImage;
-    string path;
-    string name;
-    Size size;
 
 public:
     bool checkForOriginal = false;
@@ -34,17 +40,16 @@ public:
     
 public:
     // Constructor
-    Image(string _path, Size _size = Size(720, 720));
-    void loadImage(string path);
+    Image(string _path);
+    void loadImage(string _path);
 
     void generateAll();
-    void generateNormalizedImage(Size targetSize = defaultSize);
+    void generateNormalizedImage();
     void generateGrayscaleImage();
     void generateCascades();
     void generateFaceImage();
-    //void generateProfileImage();
+    //void generateProfileImage(); TODO
 
-    // Debug :
     void drawDebugCascades();
     void drawDebugAllCascades();
 
