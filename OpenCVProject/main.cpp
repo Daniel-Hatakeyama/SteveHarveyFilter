@@ -34,7 +34,7 @@ const string outputPath = ".\\Resources\\Output\\";
 
 // Ouput Settings
 const bool storeImage = true;		   // If store image in outputDestination
-const bool overrideDuplicates = true; // Regenerate if item already exists in output
+const bool overrideDuplicates = false; // Regenerate if item already exists in output
 const bool showOutput = true;	       // Show all contents of output folder 
 
 // Display Settings
@@ -91,10 +91,11 @@ void generateProfileImages(const std::vector<std::string>& inFiles, const bool& 
 	cout << endl << "[Generating] : " << endl << endl;
 
 	int count = 0;
+	int successCount = 0;
 	for (string path : inFiles) {
 
 		// PREPARE :
-		cout << "Constructing Image " << ++count << "/" << inFiles.size() << " : " << inFiles.size() << " Positive Match" << endl;
+		cout << "Constructing Image [" << ++count << "/" << inFiles.size() << "] [" << successCount << " successes]" << endl;
 		Image image = Image(path);
 
 		// GENERATE :
@@ -121,6 +122,7 @@ void generateProfileImages(const std::vector<std::string>& inFiles, const bool& 
 			} else if (storeImage) {
 				cout << "Invalid Output Directory [Could not save image]" << endl;
 			}
+			successCount++; // Used for debug printing
 			cout << "[Success]" << endl << endl;
 		} else {
 			// LOG :
