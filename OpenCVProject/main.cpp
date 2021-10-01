@@ -57,9 +57,7 @@ const bool skipFails = false;		   // Draw negative matches
 int main() {
 	using namespace std;
 	using namespace cv;
-	
-	// Log Level : Errors :
-	utils::logging::setLogLevel(utils::logging::LogLevel::LOG_LEVEL_ERROR);
+	utils::logging::setLogLevel(utils::logging::LogLevel::LOG_LEVEL_ERROR); // Log Level : Errors :
 
 	// Persistent Variables :
 	vector<string> inFiles;

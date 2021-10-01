@@ -19,8 +19,6 @@ private:
     static const string animeEyeCascadePath;
 
 public:
-
-public:
     string path, name, ext;
     Size size;
     Mat original, normalized, grayscale, faceImage, profileImage, debugImage;
