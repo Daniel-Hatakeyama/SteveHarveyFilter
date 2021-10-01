@@ -51,6 +51,7 @@ const bool skipFails = false;		   // Draw negative matches
 * Increase Speed further: Optimise construction
 * Determine once and for all if you should be dynamically allocating to improve performance.
 * Add Static Size Variable
+* Move Helper / Condenser Functions to Seperate File
 */
 /* ---------------------------------------- Main ---------------------------------------- */
 
