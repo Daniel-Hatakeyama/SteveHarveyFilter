@@ -24,6 +24,7 @@
     <ProjectGuid>{05160fcf-f74a-40fe-a157-ed4aeac9cca9}</ProjectGuid>
     <RootNamespace>OpenCVProject</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Heve_Starvey_Filter</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
