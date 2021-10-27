@@ -1,11 +1,13 @@
 #include <iostream> 
-#include <cstdlib>
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <vector>
 #include <string>
 
 #include "Image.h"
+#include "Log.h"
+
+#define endlog Log::printStream()
 
 using namespace std;
 using namespace cv;
@@ -47,12 +49,12 @@ void Image::generateAll() {
 
 // Reset Function with New Path
 void Image::loadImage(string _path) {
-	
+
 	path = _path;
 	name = path.substr(path.rfind('\\') + 1, path.rfind('.') - path.rfind('\\') - 1);
 	ext = path.substr(path.rfind('.'));
 
-	cout << "loadImage(" << path << ") : ";
+	Log::stream << "Load Image : \"" << path << "\" : " << endlog;
 
 	// Reset Data Checks :
 	original.release();
@@ -72,26 +74,27 @@ void Image::loadImage(string _path) {
 	original = imread(path);
 
 	if (original.empty()) {
-		cout << "-Failed-" << endl;
+		Log::stream << "[-Failed-]" << endl << endlog;
 	}
 	else {
-		cout << "-Success-" << endl;
+		Log::stream << "[-Successful-]" << endl << endlog;
 		checkForOriginal = true;
 	}
 
+	Log::popKey();
 }
 
 void Image::generateNormalizedImage() {
 
 	// Requires Original :
-	cout << "generateNormalizedImage() : ";
+	Log::stream << "Normalized Image : " << endlog;
 	if (!checkForOriginal) {
-		cout << "-Failed- [CheckForOriginal]" << endl;
+		Log::stream << "[-Failed-] (CheckForOriginal required)" << endl << endlog;
 	}
 
 	// Requires Size Property
 	if (size == Size(0, 0)) {
-		cout << "-Failed- [Invalid Size]" << endl;
+		Log::stream << "[-Failed-] (Invalid Size)" << endl << endlog;
 	}
 
 	Size targetSize = size;
@@ -126,7 +129,7 @@ void Image::generateNormalizedImage() {
 			resize(normalized, normalized, Size(aspectWidth, targetSize.height), INTER_CUBIC);
 		}
 	}
-	cout << "[" << normalized.rows << "," << normalized.cols << "] : " << "-Success-" << endl;
+	Log::stream << "[" << normalized.rows << "," << normalized.cols << "] : " << "[-Successful-]" << endl;
 	debugImage = normalized.clone();
 	faceImage = normalized.clone();
 	checkForNormalized = true;
@@ -135,45 +138,48 @@ void Image::generateNormalizedImage() {
 void Image::generateGrayscaleImage() {
 
 	// Requires Normalized :
-	cout << "generateGrayscaleImage() : ";
+	Log::stream << "Grayscale Image : " << endlog;
 	if (!checkForNormalized) {
-		cout << "-Failed-" << endl;
+		Log::stream << "[-Failed-] (checkForNormalized required)" << endl << endlog;
 		return;
 	}
 
 	cvtColor(normalized, grayscale, COLOR_BGR2GRAY);
-	cout << "-Success-" << endl;
+	Log::stream << "[-Successful-]" << endl << endlog;
 	checkForGrayscale = true;
 }
 
 void Image::generateCascades() {
+	Log::pushKey("CASCADE");
+	Log::stream << "Detetect Multi Scale : Cascading : " << endlog;
 
 	// Requires grayscale :
-
-	cout << "generateCascades() : Cascading : ";
-
 	if (!checkForGrayscale) {
-		cout << "-Failed- [checkForGrayscale]" << endl;
+		Log::stream << "[-Failed-] (checkForGrayscale required)" << endl << endlog;
 		return;
 	}
 
 	// Run Face Detection :
-	faceCascade.detectMultiScale(grayscale); cout << "-";
-	animeFaceCascade.detectMultiScale(grayscale); cout << "-";
+	faceCascade.detectMultiScale(grayscale); Log::print("-");
+	animeFaceCascade.detectMultiScale(grayscale); Log::print("-");
 	// Run Eye Detection :
-	eyeCascade.detectMultiScale(grayscale); cout << "-";
-	animeEyeCascade.detectMultiScale(grayscale); cout << "-";
+	eyeCascade.detectMultiScale(grayscale); Log::print("-");
+	animeEyeCascade.detectMultiScale(grayscale); Log::print("-");
 
-	cout << " : -Success-" << endl;
+	Log::stream << " : [-Successful-]" << endl << endlog;
 	checkForCascades = true;
+
+	Log::popKey(); // CASCADE
 }
 
 void Image::generateFaceImage() {
-	cout << "generateFaceImage() : ";
+	
+	Log::pushKey("FACE");
+	Log::stream << "Face Image : " << endlog;
+	
 	// Requires cascades
-
 	if (!checkForCascades) {
-		cout << "-Failed- [checkForCascades]" << endl;
+		Log::stream << "[-Failed-] (checkForCascades required)" << endl << endlog;
 		return;
 	}
 
@@ -188,15 +194,16 @@ void Image::generateFaceImage() {
 		}*/
 
 		if (numEyes == 2) {
-			cout << "Requirements [default face] have been met : -Success- ";
+			Log::stream << "Requirements [default face] have been met : [-Successful-] " << endlog;
 			checkForFaceImage = true;
 			// Requirements have been met to draw features
 			Rect face = largestFace;
 			Rect eyeL = (eyeCascade.rects.at(0).x < eyeCascade.rects.at(1).x) ? eyeCascade.rects.at(0) : eyeCascade.rects.at(1);
 			Rect eyeR = (eyeL == eyeCascade.rects.at(1)) ? eyeCascade.rects.at(0) : eyeCascade.rects.at(1);
 
-			// cout << "Drawing Face: " << endl;
+			Log::pushKey("DRAW_FACE");
 			drawFace(face, eyeL, eyeR);
+			Log::popKey(); // DRAW_FACE
 		}
 	}
 	if (animeFaceCascade.rects.size() > 0) {
@@ -209,19 +216,20 @@ void Image::generateFaceImage() {
 		}*/
 
 		if (numAnimeEyes == 2) {
-			cout << "Requirements [anime face] have been met : -Success- ";
+			Log::stream << "Requirements [anime face] have been met : [-Successful-] " << endlog;
 			checkForFaceImage = true;
 			// Requirements have been met to draw features
 			Rect face = largestAnimeFace;
 			Rect eyeL = (animeEyeCascade.rects.at(0).x < animeEyeCascade.rects.at(1).x) ? animeEyeCascade.rects.at(0) : animeEyeCascade.rects.at(1);
 			Rect eyeR = (eyeL == animeEyeCascade.rects.at(1)) ? animeEyeCascade.rects.at(0) : animeEyeCascade.rects.at(1);
 
-			// cout << "Drawing Face : " << endl;
+			Log::pushKey("DRAW_FACE");
 			drawFace(face, eyeL, eyeR);
+			Log::popKey(); // DRAW_FACE
 		}
 	}
-
-	cout << endl;
+	Log::print("\n");
+	Log::popKey(); // FACE
 }
 
 int Image::eyesInLargestFace(vector<Rect>& faceRects, vector<Rect>& eyeRects, Rect& largestFace) {

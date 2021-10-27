@@ -1,10 +1,9 @@
 #include <iostream> 
-#include <cstdlib>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include <string>
 
 #include "Cascade.h"
+#include "Log.h"
 
 using namespace std;
 using namespace cv;
@@ -12,7 +11,7 @@ using namespace cv;
 void Cascade::detectMultiScale(Mat grayscaleImage) {
 
 	if (!scaleFactor && !minNeighbors && (minSize == Size(0, 0))) {
-		cout << "Apply Settings to Cascade" << endl;
+		Log::stream << "Apply Settings to Cascade" << endl << Log::printStream();
 	}
 
 	cascade.detectMultiScale(grayscaleImage, rects, scaleFactor, minNeighbors, 0, minSize);
