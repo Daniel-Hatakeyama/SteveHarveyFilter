@@ -21,6 +21,8 @@ Image::Image(string _path) {
 
 	loadImage(path);
 
+	// CHANGE THESE TO ADJUST SENSITIVITY
+
 	// Face Cascade Settings :
 	faceCascade.settings(1.05, 5, Size(40, 40));
 	eyeCascade.settings(1.1, 6, Size(25, 25));
@@ -180,6 +182,11 @@ void Image::generateFaceImage() {
 		Rect largestFace;
 		int numEyes = eyesInLargestFace(faceCascade.rects, eyeCascade.rects, largestFace);
 
+		// JANK SOLUTION FOR WHEN ANIME EYES IN REAL FACE
+		/*if (numEyes == 0) {
+			numEyes = eyesInLargestFace(faceCascade.rects, animeEyeCascade.rects, largestFace);
+		}*/
+
 		if (numEyes == 2) {
 			cout << "Requirements [default face] have been met : -Success- ";
 			checkForFaceImage = true;
@@ -195,6 +202,11 @@ void Image::generateFaceImage() {
 	if (animeFaceCascade.rects.size() > 0) {
 		Rect largestAnimeFace;
 		int numAnimeEyes = eyesInLargestFace(animeFaceCascade.rects, animeEyeCascade.rects, largestAnimeFace);
+		
+		// JANK SOLUTION FOR WHEN REAL EYES IN ANIME FACE
+		/*if (numAnimeEyes == 0) {
+			numAnimeEyes = eyesInLargestFace(animeFaceCascade.rects, eyeCascade.rects, largestAnimeFace);
+		}*/
 
 		if (numAnimeEyes == 2) {
 			cout << "Requirements [anime face] have been met : -Success- ";
@@ -208,6 +220,7 @@ void Image::generateFaceImage() {
 			drawFace(face, eyeL, eyeR);
 		}
 	}
+
 	cout << endl;
 }
 

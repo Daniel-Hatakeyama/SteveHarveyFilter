@@ -11,6 +11,9 @@
 #include "Image.h"
 namespace fs = std::filesystem; // Requires C++17
 
+
+#define minInt -1000000;
+
 /* ---------------------------------------- Headers ---------------------------------------- */
 
 inline void generateInputFileList(std::vector <std::string>& inFiles, const std::vector <std::string>& outFiles, const std::string path);
@@ -18,7 +21,7 @@ inline void generateOutputFileList(std::vector <std::string>& fileList, const st
 void generateProfileImages(const std::vector<std::string>& inFiles, const bool& validOutput);
 inline void displayOutput(const std::vector<string>& outFiles);
 inline void keyContinue();
-inline void printFileList(const std::vector<std::string>& fileList, std::string name = "");
+inline void printFileList(const std::vector<std::string>& fileList, std::string name = "", std::string path = "");
 inline bool exists(const std::string& name);
 inline bool validateExtension(const std::string& path);
 void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outFiles, const std::string& inputPath, const std::string& outputPath, bool& validOutput);
@@ -26,23 +29,33 @@ void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outF
 /* ---------------------------------------- SETTINGS ---------------------------------------- */
 
 // Profile Parameters :
-const Size profileSize = Size(720, 720); // TODO This dont do shit rn xd
+const Size profileSize = Size(720, 720); // TODO This dont do shit rn xd // This is somewhere in cascade or image idk, which is fine, but def address cropping in general
 
 // FileIO : File/Folder Input : Folder Output
-const string inputPath = ".\\Resources\\Input\\";
-const string outputPath = ".\\Resources\\Output\\";
+const string inputPath = ".\\Resources\\Input\\"; //"\\Users\\djhat\\OneDrive\\Pictures\\Input_Heve\\";
+const string outputPath = "\\Users\\djhat\\OneDrive\\Pictures\\Output_Heve\\";
+const string failPath = ".\\Resources\\Failures\\"; // Optional : ! THERE ARE NO CHECKS ON THIS SO BE CAREFUL !
+
+// Input Settings
+const bool deleteFailures = true;      // Deletes negative heve profiles from input path : Quickens Future Runs
+const bool storeFailures = true;       // Only set if failPath is valid : ! THERE ARE NO CHEKS ON THIS SO BE CAREFUL !
+const bool deleteSuccesses = false;    // Delete positive heve profiles from input path : Use overrideDuplicates instead for 95% of cases
+
 
 // Ouput Settings
 const bool storeImage = true;		   // If store image in outputDestination
-const bool overrideDuplicates = false; // Regenerate if item already exists in output
-const bool showOutput = true;	       // Show all contents of output folder 
+const bool overrideDuplicates = false; // Generate item even if duplicate already exists in output
+const bool showOutput = true;	       // Show all contents of output 
 
 // Display Settings
 const bool displayLog = false;		   // Display each image as it is generated
-const bool showDebugImage = false;	   // Debug draw all rectangle cascades
+const bool showDebugImage = false ;	   // Debug draw all rectangle cascades
 const bool showCascadeImage = true;    // Draw final cascades
 const bool showProfileImage = true;    // Draw final image
 const bool skipFails = false;		   // Draw negative matches
+
+// Print Settings
+const bool printValidate = false;	   // Debug Input Path Validation
 
 /* -------------------------------------- TODO LIST ------------------------------------- */
 /* 
@@ -63,7 +76,7 @@ int main() {
 	// Persistent Variables :
 	vector<string> inFiles;
 	vector<string> outFiles;
-	bool validOutput;
+	bool validOutput; // True if outputPath exists
 
 	// Input / Output Setup :
 	ioHandler(inFiles, outFiles, inputPath, outputPath, validOutput);
@@ -73,7 +86,6 @@ int main() {
 	
 	// Display Output :
 	displayOutput(outFiles);
-	
 }
 
 /* ---------------------------------------- Functions ---------------------------------------- */
@@ -117,10 +129,20 @@ void generateProfileImages(const std::vector<std::string>& inFiles, const bool& 
 			if (storeImage && validOutput) {
 				string writePath = outputPath + image.name + image.ext;
 				imwrite(writePath, image.faceImage);
-				cout << "Saving " << image.name << image.ext << " in " << outputPath.substr(2) << endl;
+				cout << "Saving \"" << image.name << image.ext << "\" in \"" << outputPath << "\"" << endl;
 			} else if (storeImage) {
 				cout << "Invalid Output Directory [Could not save image]" << endl;
 			}
+
+			if (deleteSuccesses) {
+				if (!remove(path.c_str())) {
+					cout << "Deleting \"" << path << "\" from input path" << endl;
+				}
+				else {
+					cout << "Error Deleting \"" << path << "\" from input path" << endl;
+				}
+			}
+
 			successCount++; // Used for debug printing
 			cout << "[Success]" << endl << endl;
 		} else {
@@ -133,6 +155,22 @@ void generateProfileImages(const std::vector<std::string>& inFiles, const bool& 
 					imshow(image.name, image.normalized); keyContinue();
 				}
 			}
+			// Save Fail into Fail Folder : ! THERE ARE NO CHECKS SO BE CAREFUL ! // TODO Add checks for fail folder [Low Priority]
+			if (storeFailures) {
+				string failurePath = failPath + image.name + image.ext;
+				imwrite(failurePath, image.normalized);
+				cout << "Storing Fail \"" << image.name << image.ext << "\" in \"" << failurePath << "\"" << endl;
+			}
+			// Delete Fail From Input
+			if (deleteFailures) {
+				if (!remove(path.c_str())) {
+					cout << "Deleting \"" << path << "\" from input path" << endl;
+				}
+				else {
+					cout << "Error Deleting \"" << path << "\" from input path" << endl;
+				}
+			}
+
 			cout << "[Fail]" << endl << endl;
 		}
 	}
@@ -146,8 +184,8 @@ void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outF
 	generateOutputFileList(outFiles, outputPath, validOutput);
 	generateInputFileList(inFiles, outFiles, inputPath);
 
-	printFileList(inFiles, "Input File List");
-	printFileList(outFiles, "Output File List");
+	printFileList(inFiles, "Input File List", inputPath);
+	printFileList(outFiles, "Output File List", outputPath);
 }
 
 // Parse valid file paths from directory OR file input
@@ -181,12 +219,20 @@ inline void generateInputFileList(std::vector <std::string>& fileList, const std
 		outputNames.push_back(oName);
 	}
 
-	if (!overrideDuplicates) {
-		cout << "----------------------------------------" << endl;
-		cout << "Validating Input Paths :" << endl;
-		cout << "----------------------------------------" << endl;
-	}
+	// Pretty Print :
+	cout << "       - HEVE STARVEY GENERATOR -       " << endl;
+	cout << "----------------------------------------" << endl;
 
+	if (printValidate) {
+		if (!overrideDuplicates) {
+			cout << "Validating Input Paths : Duplicate List : ";
+		}
+		else {
+			cout << "Validating Input Paths : ";
+		}
+	}
+	
+	int duplicateCount = 0;
 	// Validate Files in Path :
 	for (auto path = fileList.begin(); path != fileList.end();) {
 		// Get file extension :
@@ -202,14 +248,18 @@ inline void generateInputFileList(std::vector <std::string>& fileList, const std
 					for (string oName : outputNames) {
 						if (oName == iName) {
 							isDuplicate = true;
+							duplicateCount++;
 							break;
 						}
 					}
 				}
 				// Test Duplicate
 				if (!overrideDuplicates && isDuplicate) {
+					// Pretty Print for first Duplicate
+					if (printValidate && duplicateCount == 1) cout << endl << "----------------------------------------";
+
 					// If duplicate and no override : Path is removed from valid list
-					cout << "[Override Duplicates == False]" << " Removed " << iName << endl;
+					if (printValidate) cout << endl << iName;
 					path = fileList.erase(path);
 					continue;
 				} else {
@@ -231,11 +281,11 @@ inline void generateInputFileList(std::vector <std::string>& fileList, const std
 		}
 	}
 	
-	if (fileList.size() == 0) {
-		// No files found (No Valid Input)
-		cout << "[Error] No Valid Input" << endl;
+	if (printValidate && !overrideDuplicates && duplicateCount == 0) cout << "No Duplicate Files Found : ";
+	if (printValidate && fileList.size() == 0 && overrideDuplicates) {
+		cout << "No Input Files Found : ";
 	}
-	cout << "----------------------------------------" << endl;
+	if (printValidate) cout << endl << "----------------------------------------" << endl;
 }
 
 // Parse valid file paths from directory input
@@ -288,13 +338,18 @@ inline void displayOutput(const std::vector<string>& outFiles) {
 	
 	if (!showOutput) return;
 	
-	cout << "Displaying Output Folder" << endl;
+	cout << "----------------------------------------" << endl;
+	cout << "Displaying Output Folder [Successes]" << endl;
+	cout << "----------------------------------------" << endl;
 	for (string path : outFiles) {
 		string name = path.substr(path.rfind('\\') + 1, path.rfind('.') - path.rfind('\\') - 1);
 		Mat outImage = imread(path);
 		imshow(name, outImage);
+		cout << "[Success] : " << name << endl;
 		keyContinue();
 	}
+	cout << "----------------------------------------" << endl;
+
 }
 
 // Wait for key press and clear windows on key event
@@ -311,14 +366,22 @@ inline bool exists(const std::string& name) {
 }
 
 // Pretty-print file path list
-inline void printFileList(const std::vector<std::string>& fileList, std::string name) {
+// Name and Path do not have to be specified
+inline void printFileList(const std::vector<std::string>& fileList, std::string name, std::string path) {
 	
 	if (name.empty()) {
 		name = "File List";
 	}
 
-	std::cout << name << " : " << endl;
-	std::cout << "----------------------------------------" << endl;
+	std::cout << name << " : " << path;
+
+	if (fileList.empty()) {
+		std::cout << " : [EMPTY]" << endl;
+	}
+	else {
+		std::cout << endl << "----------------------------------------" << endl;
+	}
+	
 	for (string file : fileList) {
 		std::cout << file << endl;
 	}
@@ -341,4 +404,4 @@ inline bool validateExtension(const std::string& path) {
 	}
 }
 
-/* ---------------------------------------- Fuck you ---------------------------------------- */
+/* ------------------------------------ Fuck you --------------------------------------- */
