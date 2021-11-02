@@ -34,7 +34,7 @@ void ioHandler(std::vector<std::string>& inFiles, std::vector<std::string>& outF
 /* ---------------------------------------- SETTINGS ---------------------------------------- */
 
 // FileIO : File/Folder Input : Folder Output
-const string inputPath = ".\\Resources\\Input\\";
+const string inputPath = "\\Users\\djhat\\OneDrive\\Pictures\\Input_Heve\\";
 const string outputPath = "\\Users\\djhat\\OneDrive\\Pictures\\Output_Heve\\";
 const string failPath = ".\\Resources\\Failures\\"; // Optional : ! THERE ARE NO CHECKS ON THIS SO BE CAREFUL !
 
@@ -43,8 +43,8 @@ const bool headless = false; // Run without UI
 const Size profileSize = Size(720, 720);
 
 // Input Settings
-const bool deleteFailures = true;      // Deletes negative heve profiles from input path : Quickens Future Runs
-const bool storeFailures = true;       // Only set if failPath is valid : ! THERE ARE NO CHEKS ON THIS SO BE CAREFUL !
+const bool deleteFailures = false;      // Deletes negative heve profiles from input path : Quickens Future Runs
+const bool storeFailures = false;       // Only set if failPath is valid : ! THERE ARE NO CHEKS ON THIS SO BE CAREFUL !
 const bool deleteSuccesses = false;    // KEEP AS FALSE : Delete positive heve profiles from input path : Use overrideDuplicates instead for 95% of cases
 
 // Ouput Settings
@@ -53,8 +53,8 @@ const bool overrideDuplicates = false; // Generate item even if duplicate alread
 const bool showOutput = true;	       // Show all contents of output 
 
 // Display Settings
-const bool displayLog = false;			// Display each image as it is generated
-const bool showDebugImage = false ;	   // Debug draw all rectangle cascades
+const bool displayLog = true;	       // Display each image as it is generated
+const bool showDebugImage = true ;	   // Debug draw all rectangle cascades
 const bool showCascadeImage = true;    // Draw final cascades
 const bool showProfileImage = true;    // Draw final image
 const bool skipFails = false;		   // Draw negative matches

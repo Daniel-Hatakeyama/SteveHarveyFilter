@@ -12,7 +12,8 @@
 using namespace std;
 using namespace cv;
 
-const string Image::frontalFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_frontalface_tree_alt.xml";
+//const string Image::frontalFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_frontalface_tree_alt.xml";
+const string Image::frontalFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_frontalface.xml";
 const string Image::eyeCascadePath = ".\\Resources\\HaarCascade\\haarcascade_eyes_update.xml";
 const string Image::animeFaceCascadePath = ".\\Resources\\HaarCascade\\haarcascade_anime_face.xml";
 const string Image::animeEyeCascadePath = ".\\Resources\\HaarCascade\\haarcascade_anime_eyes.xml";
@@ -26,16 +27,17 @@ Image::Image(string _path) {
 	// CHANGE THESE TO ADJUST SENSITIVITY
 
 	// Face Cascade Settings :
-	faceCascade.settings(1.05, 5, Size(40, 40));
-	eyeCascade.settings(1.1, 6, Size(25, 25));
-	animeFaceCascade.settings(1.05, 5, Size(40, 40));
-	animeEyeCascade.settings(1.1, 3, Size(25, 25));
+	//.settings(1.05, 5, Size(40, 40));
+	faceCascade.settings(1.05, 5, Size(40, 40));		// Blue
+	eyeCascade.settings(1.1, 6, Size(25, 25));			// Pink
+	animeFaceCascade.settings(1.05, 5, Size(40, 40));	// Green
+	animeEyeCascade.settings(1.1, 3, Size(25, 25));		// Red
 
 	// Face Cascade Colors :
-	faceCascade.color = Scalar(255, 0, 0);
-	eyeCascade.color = Scalar(255, 0, 255);
-	animeFaceCascade.color = Scalar(0, 255, 0);
-	animeEyeCascade.color = Scalar(0, 0, 255);
+	faceCascade.color = Scalar(255, 0, 0);				// Blue
+	eyeCascade.color = Scalar(255, 0, 255);				// Pink
+	animeFaceCascade.color = Scalar(0, 255, 0);			// Green
+	animeEyeCascade.color = Scalar(0, 0, 255);			// Red
 
 }
 
